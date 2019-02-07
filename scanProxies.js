@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-06 17:03:58>
+// last saved: <2019-February-06 17:26:56>
 
 const edgejs = require('apigee-edge-js'),
       Getopt = require('node-getopt'),
@@ -32,12 +32,12 @@ const edgejs = require('apigee-edge-js'),
       sprintf = require('sprintf-js').sprintf,
       lib = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version = '20190205-1805';
+      version = '20190206-1726';
 
 var optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
-      ['d' , 'deployed', 'Optional. restrict scan to revisions of proxies that are deployed.'],
-      ['L' , 'list', 'Optional. list the scanners available.']
+      ['d' , 'deployed', 'Optional. restrict the scan to revisions of proxies that are deployed.'],
+      ['L' , 'list', 'Optional. list the available scanners.']
     ]);
 
 // ========================================================================================
@@ -140,18 +140,13 @@ apigeeEdge.connect(options)
       // If looking at all proxies, proxySet is an array of {proxyname}.
       // OR, if looking at deployed proxies, proxySet is an array of {proxyname, revision}
 
-      // for testing
-      // proxySet = proxySet.filter( x => x.startsWith('sujnana'));
-      // proxySet = proxySet.filter( (item, ix) => ix < 4);
-      // console.log(' proxies: ' + JSON.stringify(proxySet, null, 2));
-
-      // proxySet = proxySet.filter ( x => x.name.startsWith('annapurna') ||
-      //                              x.name.startsWith('xpath') ||
-      //                              x.name.startsWith('echo') ||
-      //                              x.name.startsWith('bad'));
-      // console.log(' examining proxies: ' + JSON.stringify(proxySet, null, 2));
-
       function oneProxy(tuple) {
+        // EITHER:
+        // tuple = {name,revision}, in which case we want to scan a single revision
+        // OR
+        // tuple = {name} and proxyDefn.revision is an array of revisions,
+        // in which case we want to scan an array of revisions.
+
         var proxyDefn;
         function examineOneProxy(result) {
           proxyDefn = result; // save this for use in next fn
@@ -161,16 +156,10 @@ apigeeEdge.connect(options)
         }
 
         function examineRevisions(interimResults) {
-          // EITHER:
-          // tuple = {name,revision}, in which case we want to scan a single revision
-          // OR
-          // tuple = {name} and proxyDefn.revision is an array of revisions,
-          // in which case we want to scan an array of revisions.
-
           let revisionArray = (tuple.revision) ? [tuple.revision] : proxyDefn.revision;
           let nameRevPairs = revisionArray.map( x => { return { name: tuple.name, revision: x}; });
 
-          // This is a 2-d reduce. We're applying N scanners against M revisions.
+          // a 2-d reduce: applying N scanners to M revisions.
           return revisionScanners
             .map(lib.makeReducer)
             .map( x => nameRevPairs.reduce(x, Promise.resolve([]) ) )
