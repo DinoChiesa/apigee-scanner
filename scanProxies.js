@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-05 18:05:37>
+// last saved: <2019-February-06 17:03:58>
 
 const edgejs = require('apigee-edge-js'),
       Getopt = require('node-getopt'),
@@ -50,74 +50,23 @@ function listScanners(scanners) {
   });
 }
 
-function getRevisionHandler(org, scannerPlugins) {
-  let scanFunctions = scannerPlugins
+function getRevisionScanners(org, scannerPlugins) {
+  return scannerPlugins
     .filter( plugin => plugin.type == 'revision')
     .map( plugin => plugin.getScanner(org,
                                       opt.options[plugin.option],
                                       (opt.options.verbose)?common.logWrite:null));
-
-  if (scanFunctions.length == 0) {
-    // return no-op if no scan functions active
-    return function(name) {
-      return function(revision) {
-        return Promise.resolve();
-      };
-    };
-  }
-
-  function scan(name) {
-    return (revision, accumulator) => {
-      //console.log('revisionIterator('+name + ',' + revision+')');
-      function reducer(p, fn) {
-        async function one() {
-          try {
-            let oneScanResult = await fn(name, revision);
-            //console.log('** oneScanResult('+name + ',' + revision+'): ' + JSON.stringify(oneScanResult));
-            return (oneScanResult) ? accumulator.concat(oneScanResult) : accumulator;
-          }
-          catch (e) {
-            console.log(e.stack);
-            process.exit(1);
-          }
-        }
-        return p.then( one );
-      }
-      return scanFunctions.reduce( reducer, Promise.resolve([]));
-    };
-  }
-
-  return scan;
 }
 
-
-function getProxyHandler(org, scannerPlugins) {
-  let scanFunctions = scannerPlugins
+function getProxyScanners(org, scannerPlugins) {
+  return scannerPlugins
     .filter( plugin => plugin.type == 'proxy')
     .map( plugin => plugin.getScanner(org,
                                       opt.options[plugin.option],
                                       (opt.options.verbose)?common.logWrite:null));
-  if (scanFunctions.length == 0) {
-    // return a no-op function if no scan functions active
-    return function(name) {
-      return Promise.resolve([]);
-    };
-  }
-
-  async function scan(proxyDefn) {
-    function reducer(p, fn) {
-      async function one(interim) {
-        let oneScanResult = await fn(proxyDefn);
-        return (oneScanResult)? interim.concat(oneScanResult): interim;
-      }
-      return p.then( one );
-    }
-    return scanFunctions.reduce( reducer, Promise.resolve([]) );
-  }
-
-  return scan;
 }
 
+// add the dynamically-loaded scanners into the optionsList
 scanners.forEach( scanner => {
   var usage = scanner.option;
   if ( ! scanner.noarg) { usage += '=ARG'; }
@@ -165,8 +114,8 @@ var options = {
 
 apigeeEdge.connect(options)
   .then ( org => {
-    let scanOneRevision = getRevisionHandler(org, activePlugins);
-    let scanOneProxy = getProxyHandler(org, activePlugins);
+    let revisionScanners = getRevisionScanners(org, activePlugins);
+    let proxyScanners = getProxyScanners(org, activePlugins);
 
     var p = (opt.options.deployed) ?
       org.proxies.getDeployments()
@@ -187,55 +136,63 @@ apigeeEdge.connect(options)
     org.proxies.get()
       .then( result => result.map( x => { return {name: x}; } ));
 
-    p = p.then( result => {
-      // If looking at all proxies, result is an array of {proxyname}.
-      // OR, if looking at deployed proxies, result is an array of {proxyname, revision}
+    p = p.then( proxySet => {
+      // If looking at all proxies, proxySet is an array of {proxyname}.
+      // OR, if looking at deployed proxies, proxySet is an array of {proxyname, revision}
 
       // for testing
-      // result = result.filter( x => x.startsWith('sujnana'));
-      // result = result.filter( (item, ix) => ix < 4);
-      // console.log(' proxies: ' + JSON.stringify(result, null, 2));
+      // proxySet = proxySet.filter( x => x.startsWith('sujnana'));
+      // proxySet = proxySet.filter( (item, ix) => ix < 4);
+      // console.log(' proxies: ' + JSON.stringify(proxySet, null, 2));
 
-      function oneProxy(tuple, accumulator) {
-        async function examineOneProxy(result){
-          let proxyScanResult = await scanOneProxy(result);
-          if (proxyScanResult && proxyScanResult.length > 0) {
-            accumulator = accumulator.concat(proxyScanResult);
-          }
-          return result;
+      // proxySet = proxySet.filter ( x => x.name.startsWith('annapurna') ||
+      //                              x.name.startsWith('xpath') ||
+      //                              x.name.startsWith('echo') ||
+      //                              x.name.startsWith('bad'));
+      // console.log(' examining proxies: ' + JSON.stringify(proxySet, null, 2));
+
+      function oneProxy(tuple) {
+        var proxyDefn;
+        function examineOneProxy(result) {
+          proxyDefn = result; // save this for use in next fn
+          return proxyScanners
+            .map( oneScanner => oneScanner(result) )
+            .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]));
         }
 
-        // async function examineAllRevisions(proxyDefn) {
-        //   let revResult = await lib.eachSeries(proxyDefn.revision, scanOneRevision(tuple.name));
-        //   //console.log('revResult: ' + JSON.stringify(revResult));
-        //   return accumulator.concat(revResult);
-        // }
-        //
-        // async function examineOneRevision(result) {
-        //   let fn = scanOneRevision(tuple.name);
-        //   let revResult = await fn(tuple.revision, []);
-        //   return accumulator.concat(revResult);
-        // }
+        function examineRevisions(interimResults) {
+          // EITHER:
+          // tuple = {name,revision}, in which case we want to scan a single revision
+          // OR
+          // tuple = {name} and proxyDefn.revision is an array of revisions,
+          // in which case we want to scan an array of revisions.
 
-        async function examineOneOrMoreRevisions(proxyDefn) {
-          let fn = scanOneRevision(tuple.name);
-          var revResult;
-          if (tuple.revision) { revResult = await fn(tuple.revision, []); }
-          else {revResult = await lib.eachSeries(proxyDefn.revision, fn);}
-          return accumulator.concat(revResult);
+          let revisionArray = (tuple.revision) ? [tuple.revision] : proxyDefn.revision;
+          let nameRevPairs = revisionArray.map( x => { return { name: tuple.name, revision: x}; });
+
+          // This is a 2-d reduce. We're applying N scanners against M revisions.
+          return revisionScanners
+            .map(lib.makeReducer)
+            .map( x => nameRevPairs.reduce(x, Promise.resolve([]) ) )
+            .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]))
+            .then( results => interimResults.concat(results));
         }
 
         return org.proxies.get({name:tuple.name})
           .then(examineOneProxy)
-          .then(examineOneOrMoreRevisions);
+          .then(examineRevisions);
       }
 
-      lib.eachSeries(result, oneProxy)
-        .then( allresult => {
-          allresult = allresult.filter( item => !!item );
-          console.log(JSON.stringify(allresult, null, 2));
+      // apply the scans on each of the proxies in the set
+      proxySet
+        .reduce(lib.makeReducer(oneProxy), Promise.resolve([]))
+        .then( allresults => {
+          allresults = allresults
+            .reduce( (a, b) => a.concat(b), []) // flatten the 2-D array
+            .filter( item => !!item );
+          console.log(JSON.stringify(allresults, null, 2));
         });
 
     });
   })
-  .catch( (e) => { console.error('error: ' + e.error);} );
+  .catch( e => { console.error('error: ' + e.error);} );

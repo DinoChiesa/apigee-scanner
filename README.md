@@ -122,7 +122,7 @@ You can use more than one of the scanners in a single run, like this:
 node ./scanProxies.js -o $ORG -n -v --deployed  --proxydesc '^((?!@example.com).)*$'  --policytype XMLToJSON
 ```
 
-When you do this,  the result is the set of proxies which is the union of all that have matched for each option.
+The result is the set of proxies which is the union of all that have matched for each option.
 
 
 
@@ -132,6 +132,7 @@ It's straightforward to add more scanners.
 Just add a new .js file to the [scanners](./lib/scanners) directory.
 Follow the example in the existing scanners.
 The scan tool will invoke the scanner if the command-line option for that scanner is present.
+
 
 ## Future Enhancements
 
