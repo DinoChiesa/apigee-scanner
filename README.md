@@ -10,11 +10,12 @@ must not listen on the the 'default' (insecure) vhost , or proxies
 must have a name that conforms to a specific pattern, or proxies
 must not use specific policy types, etc.
 
-The output of this tool may be used for further investigation
+The output of this tool may be used for further investigation or reports out to
+team collaboration systems, like slack or Google chat.
 
 ## Pre-requisites
 
-* Node v6 or above
+* Node v6.2 or above
 * npm
 
 ## Don't forget to Install node modules
@@ -124,6 +125,40 @@ node ./scanProxies.js -o $ORG -n -v --deployed  --proxydesc '^((?!@example.com).
 
 The result is the set of proxies which is the union of all that have matched for each option.
 
+
+## Specific Usage Examples
+
+1. Find deployed proxies with names that don't look like foo-1 or bar-2:
+
+   ```
+   node ./scanProxies.js -o $ORG -n -v --deployed  --proxyname '^(?!((foo|bar)-(/d)))'
+   ```
+
+2. Find deployed proxies that use the XMLToJSON policy:
+
+   ```
+   node ./scanProxies.js -o $ORG -n -v --deployed  --policytype XMLToJSON
+   ```
+
+3. Find deployed proxies that do not include an email address in the description.
+   ```
+   node ./scanProxies.js -o $ORG -n -v --deployed  --proxydesc '^((?!@example.com).)*$'
+   ```
+
+4. Find deployed proxies that listen on the insecure vhost
+   ```
+   node ./scanProxies.js -o $ORG -n -v --deployed  --vhost default
+   ```
+
+5. Find deployed proxies that have TLS configured incorrectly on any target
+   ```
+   node ./scanProxies.js -o $ORG -n -v --deployed  --targetssl
+   ```
+
+6. Find deployed proxies that use a script (trireme nodejs) target
+   ```
+   node ./scanProxies.js -o $ORG -n -v --deployed  --targettype script
+   ```
 
 
 ## Adding Scanners
