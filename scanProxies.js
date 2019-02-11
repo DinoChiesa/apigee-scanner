@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-06 17:26:56>
+// last saved: <2019-February-11 14:49:53>
 
 const edgejs = require('apigee-edge-js'),
       Getopt = require('node-getopt'),
@@ -32,7 +32,7 @@ const edgejs = require('apigee-edge-js'),
       sprintf = require('sprintf-js').sprintf,
       lib = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version = '20190206-1726';
+      version = '20190211-1411';
 
 var optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
@@ -102,16 +102,7 @@ if (activePlugins.length == 0) {
 }
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
-
-var options = {
-      mgmtServer: opt.options.mgmtserver,
-      org : opt.options.org,
-      user: opt.options.username,
-      password: opt.options.password,
-      no_token: opt.options.notoken,
-      verbosity: opt.options.verbose || 0
-    };
-
+var options = common.optToOptions(opt);
 apigeeEdge.connect(options)
   .then ( org => {
     let revisionScanners = getRevisionScanners(org, activePlugins);
@@ -122,6 +113,9 @@ apigeeEdge.connect(options)
       .then( result => {
         // transform the result into a single array of name,revision tuples
         let transformed = [];
+        if ( ! result.environment) {
+          throw new Error('missing environment');
+        }
         result.environment.forEach( e => {
           e.aPIProxy.forEach( proxy => {
             proxy.revision.forEach( r => {
@@ -184,4 +178,4 @@ apigeeEdge.connect(options)
 
     });
   })
-  .catch( e => { console.error('error: ' + e.error);} );
+  .catch( e => { console.error('error: ' + e.stack);} );
