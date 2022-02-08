@@ -1,7 +1,7 @@
 {
   "name": "apigee-edge-scanner",
-  "version": "0.0.5",
-  "description": "Scan the proxies (and maybe in the future, other assets) in an org for various conditions",
+  "version": "0.0.6",
+  "description": "Scan the proxies (and maybe in the future, other assets) in an Apigee organization for various conditions",
   "main": "scanProxies.js",
   "scripts": {
     "start": "node scanProxies.js",
@@ -10,9 +10,13 @@
   "author": "dchiesa@google.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "apigee-edge-js": "^0.4.28",
+    "@xmldom/xmldom": "^0.8.0",
+    "adm-zip": "^0.5.9",
+    "apigee-edge-js": "^0.4.30",
     "node-getopt": "0.3.2",
-    "sprintf-js": "^1.1.2"
+    "sprintf-js": "^1.1.2",
+    "tmp-promise": "^3.0.3",
+    "xpath": "^0.0.32"
   },
   "engines": {
     "node": ">= 10.15.1"

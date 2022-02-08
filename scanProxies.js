@@ -1,13 +1,13 @@
 #! /usr/local/bin/node
-/*jslint node:true, esversion:6 */
+/* jslint node:true, esversion:9, strict:implied */
 // scanProxies.js
 // ------------------------------------------------------------------
 //
-// In Apigee, scan all proxies for a specific condition, eg, proxies that
-// refer to a specified vhost, or proxies with a name that matches a regex. This
-// can be helpful in enforcing compliance rules: eg, proxies must not listen on
-// the the 'default' (insecure) vhost , or proxies must have a name that
-// conforms to a specific pattern.
+// In an Apigee organization, scan all proxies for a specific condition, eg,
+// proxies that refer to a specified vhost, or proxies with a name that matches
+// a regex. This can be helpful in enforcing compliance rules: eg, proxies must
+// not listen on the the 'default' (insecure) vhost, or proxies must have a name
+// that conforms to a specific pattern.
 //
 // Copyright © 2017-2022 Google LLC.
 //
@@ -23,21 +23,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-February-08 09:59:34>
+// last saved: <2022-February-08 13:54:18>
 
 const apigeejs = require('apigee-edge-js'),
-      Getopt = require('node-getopt'),
-      common = apigeejs.utility,
-      apigee = apigeejs.apigee,
-      sprintf = require('sprintf-js').sprintf,
-      lib = require('./lib/index.js'),
+      Getopt   = require('node-getopt'),
+      util     = require('util'),
+      path     = require('path'),
+      fs       = require('fs'),
+      tmp      = require('tmp-promise'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      sprintf  = require('sprintf-js').sprintf,
+      AdmZip   = require('adm-zip'),
+      lib      = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version = '20220208-0958';
+      version  = '20220208-1354';
 
 let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
       ['d' , 'deployed', 'Optional. restrict the scan to revisions of proxies that are deployed.'],
-      ['L' , 'list', 'Optional. list the available scanners.']
+      ['L' , 'list', 'Optional. list the available scanners.'],
+      ['e' , 'environment=ARG', 'Optional. Use with the --deployed flag.'],
+      ['' , 'latestrevision', 'Optional. scan only the latest revision of each proxy.']
     ]);
 
 // ========================================================================================
@@ -101,27 +108,40 @@ if (activePlugins.length == 0) {
   process.exit(1);
 }
 
-common.verifyCommonRequiredParameters(opt.options, getopt);
-var options = common.optToOptions(opt);
-
-if (opt.options.apigeex) {
-  console.log('This tool does not work with Apigee X or hybrid at this time.');
+if (opt.options.apigeex && opt.options.deployed && !opt.options.environment) {
+  console.log('With --apigeex, you must specify --environment when you also specify --deployed.');
+  getopt.showHelp();
   process.exit(1);
 }
+
+common.verifyCommonRequiredParameters(opt.options, getopt);
+var options = common.optToOptions(opt);
 
 apigee.connect(options)
   .then ( org => {
     let revisionScanners = getRevisionScanners(org, activePlugins);
     let proxyScanners = getProxyScanners(org, activePlugins);
 
-    var p = (opt.options.deployed) ?
-      org.proxies.getDeployments()
+    let p = (opt.options.deployed) ?
+      org.proxies.getDeployments({environment:opt.options.environment})
       .then( result => {
-        // transform the result into a single array of name,revision tuples
-        let transformed = [];
+        // transform the result into a flat array of name,revision tuples
+        console.log('result: ' + util.format(result));
+        // gaambo: {  deployments: [ { environment: 'test1', apiProxy: 'httpbin-v0', revision: '1', basePath: '/'}..] }
+        // edge with environment: { aPIProxy: [ { name: 'httpbin-v0', revision: ['1'] }..] }
+        // edge without environment: { environment: [ {name: 'e1', aPIProxy: [ { name: 'httpbin-v0', revision: ['1'] }...] }...] }
+
+        if (result.deployments) {
+          return result.deployments.map( d => ({name:d.apiProxy, revision:d.revision }));
+        }
+        if (result.aPIProxy) {
+          return result.aPIProxy.map( d => ({name:d.name, revision:d.revision.slice(-1) }));
+        }
+
         if ( ! result.environment) {
           throw new Error('missing environment');
         }
+        let transformed = [];
         result.environment.forEach( e => {
           e.aPIProxy.forEach( proxy => {
             proxy.revision.forEach( r => {
@@ -133,12 +153,14 @@ apigee.connect(options)
         });
         return transformed;
       }) :
-    org.proxies.get()
-      .then( result => result.proxies? result.proxies : result.map( x => { return {name: x}; } ) );
+      org.proxies.get()
+        .then( result => result.proxies? result.proxies : result.map( x => { return {name: x}; } ) ) ;
 
     p = p.then( proxySet => {
-      // If looking at all proxies, proxySet is an array of {proxyname}.
-      // OR, if looking at deployed proxies, proxySet is an array of {proxyname, revision}
+      // If looking at all proxies, proxySet is an array of {name: proxyname}.
+      // OR, if looking at deployed proxies, proxySet is an array of {name:proxyname, revision}
+
+      return tmp.dir({unsafeCleanup:true}).then(tmpdir => {
 
       function oneProxy(tuple) {
         // EITHER:
@@ -147,25 +169,61 @@ apigee.connect(options)
         // tuple = {name} and proxyDefn.revision is an array of revisions,
         // in which case we want to scan an array of revisions.
 
-        var proxyDefn;
+        // There are two kinds of scans: one that applies to the proxy
+        // definition itself, and the other that applies to the proxy revision.
+        // The proxy is pretty limited in what it stores: proxy name.  The
+        // revision is what contains most of the interesting information that is
+        // worthy of scanning.
+
+        let proxyDefn;
+
         function examineOneProxy(result) {
           proxyDefn = result; // save this for use in next fn
+          //console.log(util.format(result));
           return proxyScanners
             .map( oneScanner => oneScanner(result) )
             .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]));
         }
 
-        function examineRevisions(interimResults) {
+        async function examineRevisions(interimResults) {
           let revisionArray = (tuple.revision) ? [tuple.revision] : proxyDefn.revision;
-          let nameRevPairs = revisionArray.map( x => { return { name: tuple.name, revision: x}; });
+          revisionArray = revisionArray
+            .map(a => Number(a))
+            .sort((a, b) => { if (a>b) return 1; if (b>a) return -1; return 0;});
+          if (opt.options.latestrevision) {
+            revisionArray = revisionArray.slice(-1);
+          }
+
+          let nameRevTuples =
+            await revisionArray
+            .reduce( (p, x) => p.then( async a => {
+              return org.proxies.export({name:tuple.name, revision:x})
+                 .then(({filename, buffer}) => {
+                   let pathOfZip = path.join(tmpdir.path, filename);
+                   let pathOfUnzippedBundle = path.join(tmpdir.path, `proxy-${tuple.name}-r${x}`);
+                   fs.writeFileSync(pathOfZip, buffer);
+                   var zip = new AdmZip(pathOfZip);
+                   zip.extractAllTo(pathOfUnzippedBundle, false);
+                   return a.concat({ name: tuple.name, revision: x, bundleDir:pathOfUnzippedBundle});
+                 });
+            }), Promise.resolve([]));
+
+          // console.log('nrTuples: ' + util.format(nameRevTuples));
 
           // a 2-d reduce: applying N scanners to M revisions.
           return revisionScanners
-            .map(lib.makeReducer)
-            .map( x => nameRevPairs.reduce(x, Promise.resolve([]) ) )
+            .map(lib.makeReducer) // turn each scanner into a reducer
+            .map( x => nameRevTuples.reduce(x, Promise.resolve([]) ) )
             .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]))
             .then( results => interimResults.concat(results));
         }
+
+        // org.proxies.export({name:tuple.name})
+        //   .then(({filename, buffer}) => {
+        //     let fqpath = path.join(tmpdir.path, filename);
+        //     fs.writeFileSync(fqpath, buffer);
+        //     return fqpath;
+        //   })
 
         return org.proxies.get({name:tuple.name})
           .then(examineOneProxy)
@@ -181,7 +239,7 @@ apigee.connect(options)
             .filter( item => !!item );
           console.log(JSON.stringify(allresults, null, 2));
         });
-
+      });
     });
   })
   .catch( e => { console.error('error: ' + e.stack);} );
