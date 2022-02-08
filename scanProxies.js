@@ -3,13 +3,13 @@
 // scanProxies.js
 // ------------------------------------------------------------------
 //
-// In Apigee Edge, scan all proxies for a specific condition, eg, proxies that
+// In Apigee, scan all proxies for a specific condition, eg, proxies that
 // refer to a specified vhost, or proxies with a name that matches a regex. This
 // can be helpful in enforcing compliance rules: eg, proxies must not listen on
 // the the 'default' (insecure) vhost , or proxies must have a name that
 // conforms to a specific pattern.
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright © 2017-2022 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,18 +23,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-February-08 09:53:32>
+// last saved: <2022-February-08 09:59:34>
 
-const edgejs = require('apigee-edge-js'),
+const apigeejs = require('apigee-edge-js'),
       Getopt = require('node-getopt'),
-      common = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+      common = apigeejs.utility,
+      apigee = apigeejs.apigee,
       sprintf = require('sprintf-js').sprintf,
       lib = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version = '20190211-1411';
+      version = '20220208-0958';
 
-var optionsList = common.commonOptions.concat([
+let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
       ['d' , 'deployed', 'Optional. restrict the scan to revisions of proxies that are deployed.'],
       ['L' , 'list', 'Optional. list the available scanners.']
@@ -81,7 +81,7 @@ var opt = getopt.parse(process.argv.slice(2));
 
 if ( ! opt.options.quiet) {
   console.log(
-    'Apigee Edge proxy scanner tool, version: ' + version + '\n' +
+    'Apigee proxy scanner tool, version: ' + version + '\n' +
       'Node.js ' + process.version + '\n');
 }
 
@@ -103,7 +103,13 @@ if (activePlugins.length == 0) {
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 var options = common.optToOptions(opt);
-apigeeEdge.connect(options)
+
+if (opt.options.apigeex) {
+  console.log('This tool does not work with Apigee X or hybrid at this time.');
+  process.exit(1);
+}
+
+apigee.connect(options)
   .then ( org => {
     let revisionScanners = getRevisionScanners(org, activePlugins);
     let proxyScanners = getProxyScanners(org, activePlugins);
@@ -128,11 +134,7 @@ apigeeEdge.connect(options)
         return transformed;
       }) :
     org.proxies.get()
-      .then( result => {
-        let util = require('util');
-        console.log(util.format(result));
-        return result.proxies? result.proxies : result.map( x => { return {name: x}; } );
-      });
+      .then( result => result.proxies? result.proxies : result.map( x => { return {name: x}; } ) );
 
     p = p.then( proxySet => {
       // If looking at all proxies, proxySet is an array of {proxyname}.
