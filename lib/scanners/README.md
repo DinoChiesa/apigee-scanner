@@ -30,25 +30,27 @@ The getScanner() input args are `(org, arg, verboseOut)` .
 
 `getScanner` must return a function which accepts different args depending on type.
 
-If type == revision, input args are `(proxyname,revision)`
+* If type == revision, input args are `(proxyname, revision, bundleDir)`
+  The `bundleDir` is a string containing the directory containing the expanded
+  zip bundle for the given proxy revision. The function can then examine
+  the files in the bundle as appropriate.
 
-If type == proxy,  input args are `(proxyDefn)`, which looks like:
-```
-{
-    "metaData": {
-        "createdAt": 1544059735857,
-        "createdBy": "dchiesa@google.com",
-        "lastModifiedAt": 1544059735857,
-        "lastModifiedBy": "dchiesa@google.com",
-        "subType": "null"
-    },
-    "name": "apigee-proxy-name"
-    "revision": [
-        "1"
-    ]
-}
-```
+* If type == proxy,  input args are `(proxyDefn)`, which looks like:
+  ```
+  {
+      "metaData": {
+          "createdAt": 1544059735857,
+          "createdBy": "dchiesa@google.com",
+          "lastModifiedAt": 1544059735857,
+          "lastModifiedBy": "dchiesa@google.com",
+          "subType": "null"
+      },
+      "name": "apigee-proxy-name"
+      "revision": [
+          "1"
+      ]
+  }
+  ```
 
 
 The return type of this scanner fn is a Promise or a plain value.
-
