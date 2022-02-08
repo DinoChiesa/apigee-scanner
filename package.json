@@ -1,6 +1,6 @@
 {
   "name": "apigee-edge-scanner",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Scan the proxies (and maybe in the future, other assets) in an org for various conditions",
   "main": "scanProxies.js",
   "scripts": {
@@ -10,14 +10,11 @@
   "author": "dchiesa@google.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "apigee-edge-js": "^0.4.7",
+    "apigee-edge-js": "^0.4.28",
     "node-getopt": "0.3.2",
     "sprintf-js": "^1.1.2"
   },
   "engines": {
-    "node": ">6.2.0"
-  },
-  "not-used": {
-    "apigee-edge-js": "git://github.com/DinoChiesa/apigee-edge-js.git#69aede5b51a6913f3ae3c390b1f67b38473259a3"
+    "node": ">= 10.15.1"
   }
 }

@@ -15,7 +15,7 @@ team collaboration systems, like slack or Google chat.
 
 ## Pre-requisites
 
-* Node v6.2 or above
+* Node v10.2 or above
 * npm
 
 ## Don't forget to Install node modules
@@ -52,13 +52,38 @@ Options:
       --targetssl      proxy with an http target with TLS disabled or no Truststore
 ```
 
-## Example Usage
+## Example Usage with Apigee Edge
 
 After you install the node modules you can run the tool:
 
 ```
 node ./scanProxies.js -o $ORG -n -v  --policytype GenerateJWT
 ```
+
+The `-n` option tells the tool to retrieve the username and password from the ~/.netrc file. If you use the `-n` option, that .netrc file should have a stanza like this:
+```
+machine api.enterprise.apigee.com
+  login myusername@email.com
+  password VerySecret!
+```
+
+This works with Apigee Edge! This kind of authentication won't work with Apigee X or hybrid.
+
+Other options for authenticating:
+* specify the -u and -p options on the command line
+* specify the -u option and be prompted for the password
+* if you use MFA, SAML, or otherwise are unable to use basic authentication, then pass a PASSCODE on the command line with the -C option in lieu of the password.  Obtain the passcode from https://login.apigee.com/passcode . Note: this works only with Apigee Edge.
+
+If you are accessing Apigee X or hybrid, you can authenticate this way:
+```sh
+PROJECT_ID=$ORG
+gcloud config set core/project $PROJECT_ID
+TOKEN=$(gcloud auth print-access-token)
+node ./scanProxies.js -v --apigeex --token $TOKEN -o $ORG  --policytype GenerateJWT
+```
+
+This requires that you have previously installed the [Google Cloud SDK](https://cloud.google.com/sdk) with the [gcloud](https://cloud.google.com/cli) command line tool.
+
 
 Example output:
 ```
@@ -176,5 +201,3 @@ In the future this tool might post its results to Slack.
 ## Bugs
 
 None?
-
-

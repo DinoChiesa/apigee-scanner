@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-11 14:49:53>
+// last saved: <2022-February-08 09:53:32>
 
 const edgejs = require('apigee-edge-js'),
       Getopt = require('node-getopt'),
@@ -128,7 +128,11 @@ apigeeEdge.connect(options)
         return transformed;
       }) :
     org.proxies.get()
-      .then( result => result.map( x => { return {name: x}; } ));
+      .then( result => {
+        let util = require('util');
+        console.log(util.format(result));
+        return result.proxies? result.proxies : result.map( x => { return {name: x}; } );
+      });
 
     p = p.then( proxySet => {
       // If looking at all proxies, proxySet is an array of {proxyname}.
