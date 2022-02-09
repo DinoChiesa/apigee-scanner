@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-February-08 13:54:18>
+// last saved: <2022-February-08 17:51:42>
 
 const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
@@ -37,7 +37,7 @@ const apigeejs = require('apigee-edge-js'),
       AdmZip   = require('adm-zip'),
       lib      = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version  = '20220208-1354';
+      version  = '20220208-1751';
 
 let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
@@ -57,21 +57,22 @@ function listScanners(scanners) {
   });
 }
 
-function getRevisionScanners(org, scannerPlugins) {
-  return scannerPlugins
+const getRevisionScanners =
+  (org, scannerPlugins) =>
+  scannerPlugins
     .filter( plugin => plugin.type == 'revision')
     .map( plugin => plugin.getScanner(org,
                                       opt.options[plugin.option],
                                       (opt.options.verbose)?common.logWrite:null));
-}
 
-function getProxyScanners(org, scannerPlugins) {
-  return scannerPlugins
+const getProxyScanners =
+  (org, scannerPlugins) =>
+  scannerPlugins
     .filter( plugin => plugin.type == 'proxy')
     .map( plugin => plugin.getScanner(org,
                                       opt.options[plugin.option],
                                       (opt.options.verbose)?common.logWrite:null));
-}
+
 
 // add the dynamically-loaded scanners into the optionsList
 scanners.forEach( scanner => {
@@ -126,7 +127,7 @@ apigee.connect(options)
       org.proxies.getDeployments({environment:opt.options.environment})
       .then( result => {
         // transform the result into a flat array of name,revision tuples
-        console.log('result: ' + util.format(result));
+        //console.log('result: ' + util.format(result));
         // gaambo: {  deployments: [ { environment: 'test1', apiProxy: 'httpbin-v0', revision: '1', basePath: '/'}..] }
         // edge with environment: { aPIProxy: [ { name: 'httpbin-v0', revision: ['1'] }..] }
         // edge without environment: { environment: [ {name: 'e1', aPIProxy: [ { name: 'httpbin-v0', revision: ['1'] }...] }...] }
@@ -160,85 +161,93 @@ apigee.connect(options)
       // If looking at all proxies, proxySet is an array of {name: proxyname}.
       // OR, if looking at deployed proxies, proxySet is an array of {name:proxyname, revision}
 
-      return tmp.dir({unsafeCleanup:true}).then(tmpdir => {
+      return tmp.dir({unsafeCleanup:true, prefix: 'scanProxies'}).then(tmpdir => {
 
-      function oneProxy(tuple) {
-        // EITHER:
-        // tuple = {name,revision}, in which case we want to scan a single revision
-        // OR
-        // tuple = {name} and proxyDefn.revision is an array of revisions,
-        // in which case we want to scan an array of revisions.
+        function oneProxy(tuple) {
+          // EITHER:
+          // tuple = {name,revision}, in which case we want to scan a single revision
+          // OR
+          // tuple = {name} and proxyDefn.revision is an array of revisions,
+          // in which case we want to scan an array of revisions.
 
-        // There are two kinds of scans: one that applies to the proxy
-        // definition itself, and the other that applies to the proxy revision.
-        // The proxy is pretty limited in what it stores: proxy name.  The
-        // revision is what contains most of the interesting information that is
-        // worthy of scanning.
+          // There are two kinds of scans: one that applies to the proxy
+          // definition itself, and the other that applies to the proxy revision.
+          // The proxy is pretty limited in what it stores: proxy name.  The
+          // revision is what contains most of the interesting information that is
+          // worthy of scanning.
+          //console.log(`oneProxy(): ${util.format(tuple)}`);
 
-        let proxyDefn;
+          let proxyDefn;
 
-        function examineOneProxy(result) {
-          proxyDefn = result; // save this for use in next fn
-          //console.log(util.format(result));
-          return proxyScanners
-            .map( oneScanner => oneScanner(result) )
-            .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]));
-        }
-
-        async function examineRevisions(interimResults) {
-          let revisionArray = (tuple.revision) ? [tuple.revision] : proxyDefn.revision;
-          revisionArray = revisionArray
-            .map(a => Number(a))
-            .sort((a, b) => { if (a>b) return 1; if (b>a) return -1; return 0;});
-          if (opt.options.latestrevision) {
-            revisionArray = revisionArray.slice(-1);
+          function getRevisionArray() {
+            // console.log(`getRevisionArray(): tuple: ${util.format(tuple)}`);
+            // console.log(`getRevisionArray(): proxyDefn: ${util.format(proxyDefn)}`);
+            if (tuple.revision) {
+              if (Array.isArray(tuple.revision)) {
+                return [tuple.revision[0].name];
+              }
+              return [tuple.revision];
+            }
+            return proxyDefn.revision;
           }
 
-          let nameRevTuples =
-            await revisionArray
-            .reduce( (p, x) => p.then( async a => {
-              return org.proxies.export({name:tuple.name, revision:x})
-                 .then(({filename, buffer}) => {
-                   let pathOfZip = path.join(tmpdir.path, filename);
-                   let pathOfUnzippedBundle = path.join(tmpdir.path, `proxy-${tuple.name}-r${x}`);
-                   fs.writeFileSync(pathOfZip, buffer);
-                   var zip = new AdmZip(pathOfZip);
-                   zip.extractAllTo(pathOfUnzippedBundle, false);
-                   return a.concat({ name: tuple.name, revision: x, bundleDir:pathOfUnzippedBundle});
-                 });
-            }), Promise.resolve([]));
+          function examineOneProxy(result) {
+            proxyDefn = result; // save this for use in next fn
+            // console.log(`examineOneProxy(): result: ${util.format(result)}`);
+            return proxyScanners
+              .map( oneScanner => oneScanner(result) )
+              .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]));
+          }
 
-          // console.log('nrTuples: ' + util.format(nameRevTuples));
+          async function examineRevisions(interimResults) {
+            let revisionArray = getRevisionArray();
+            // console.log(`examineRevisions(): a1: ${util.format(revisionArray)}`);
+            revisionArray = revisionArray
+              .map(a => Number(a))
+              .sort((a, b) => { if (a>b) return 1; if (b>a) return -1; return 0;});
+            if (opt.options.latestrevision) {
+              revisionArray = revisionArray.slice(-1);
+            }
+            //console.log(`examineRevisions(): a2: ${util.format(revisionArray)}`);
 
-          // a 2-d reduce: applying N scanners to M revisions.
-          return revisionScanners
-            .map(lib.makeReducer) // turn each scanner into a reducer
-            .map( x => nameRevTuples.reduce(x, Promise.resolve([]) ) )
-            .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]))
-            .then( results => interimResults.concat(results));
+            let nameRevTuples =
+              await revisionArray
+              .reduce( (p, x) => p.then( async a => {
+                return org.proxies.export({name:tuple.name, revision:x})
+                  .then(({filename, buffer}) => {
+                    let pathOfZip = path.join(tmpdir.path, filename);
+                    // console.log(`looking at rev ${x}`);
+                    let pathOfUnzippedBundle = path.join(tmpdir.path, `proxy-${tuple.name}-r${x}`);
+                    fs.writeFileSync(pathOfZip, buffer);
+                    var zip = new AdmZip(pathOfZip);
+                    zip.extractAllTo(pathOfUnzippedBundle, false);
+                    return a.concat({ name: tuple.name, revision: x, bundleDir:pathOfUnzippedBundle});
+                  });
+              }), Promise.resolve([]));
+
+            // a 2-d reduce: applying N scanners to M revisions.
+            return revisionScanners
+              .map(lib.makeReducer) // turn each scanner into a reducer
+              .map( x => nameRevTuples.reduce(x, Promise.resolve([]) ) )
+              .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]))
+              .then( results => interimResults.concat(results));
+          }
+
+          return org.proxies.get({name:tuple.name})
+            .then(examineOneProxy)
+            .then(examineRevisions);
         }
 
-        // org.proxies.export({name:tuple.name})
-        //   .then(({filename, buffer}) => {
-        //     let fqpath = path.join(tmpdir.path, filename);
-        //     fs.writeFileSync(fqpath, buffer);
-        //     return fqpath;
-        //   })
-
-        return org.proxies.get({name:tuple.name})
-          .then(examineOneProxy)
-          .then(examineRevisions);
-      }
-
-      // apply the scans on each of the proxies in the set
-      proxySet
-        .reduce(lib.makeReducer(oneProxy), Promise.resolve([]))
-        .then( allresults => {
-          allresults = allresults
-            .reduce( (a, b) => a.concat(b), []) // flatten the 2-D array
-            .filter( item => !!item );
-          console.log(JSON.stringify(allresults, null, 2));
-        });
+        // apply the scans on each of the proxies in the set
+        proxySet
+          .reduce(lib.makeReducer(oneProxy), Promise.resolve([]))
+          .then( allresults => {
+            allresults = allresults
+              .reduce( (a, b) => a.concat(b), []) // flatten the 2-D array
+              .filter( item => !!item );
+            console.log(JSON.stringify(allresults, null, 2));
+          })
+          .then(() => tmpdir.cleanup());
       });
     });
   })

@@ -99,7 +99,7 @@ This requires that you have previously installed the [Google Cloud SDK](https://
 
 ## Example output
 
-Regardless whether you use Edge or X/hybrid, the output is something like this: 
+Regardless whether you use Edge or X/hybrid, the output is something like this:
 
 ```
 [
@@ -128,7 +128,7 @@ Regardless whether you use Edge or X/hybrid, the output is something like this:
 
 ## Notes on Operation
 
-The way the tool works is to export the API proxies via the Apigee API, and then examine the exploded proxy bundles. 
+The way the tool works is to export the API proxies via the Apigee API, and then examine the exploded proxy bundles.
 The tool uses a temporary directory to hold the expanded bundles.
 
 
