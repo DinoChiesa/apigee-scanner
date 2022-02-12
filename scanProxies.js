@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-February-08 17:51:42>
+// last saved: <2022-February-11 18:00:11>
 
 const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
@@ -37,7 +37,7 @@ const apigeejs = require('apigee-edge-js'),
       AdmZip   = require('adm-zip'),
       lib      = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version  = '20220208-1751';
+      version  = '20220211-1800';
 
 let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
@@ -72,7 +72,6 @@ const getProxyScanners =
     .map( plugin => plugin.getScanner(org,
                                       opt.options[plugin.option],
                                       (opt.options.verbose)?common.logWrite:null));
-
 
 // add the dynamically-loaded scanners into the optionsList
 scanners.forEach( scanner => {
