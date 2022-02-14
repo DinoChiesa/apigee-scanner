@@ -14,6 +14,17 @@ The conditions can be somewhat elaborate. This can be helpful in enforcing compl
 The output of this tool may be used for further investigation or reports out to
 team collaboration systems, like Slack or Google chat, etc.
 
+## License and Copyright
+
+This material is [Copyright (c) 2018-2022 Google LLC](./NOTICE).
+and is licensed under the [Apache 2.0 License](LICENSE).
+
+## Disclaimer
+
+This tool is open-source software. It is not an officially supported Google
+product. It is not a part of Apigee, or any other officially supported Google
+Product.
+
 ## Pre-requisites
 
 * Node v16.13.1 or above
@@ -243,9 +254,17 @@ represents the command-line option for that scanner. The scan tool will invoke
 the scanner if the command-line option for that scanner is present.
 
 
-## Future Enhancements
+## Possible Future Enhancements
 
 In the future this tool might post its results to Slack or Google Chat.
+
+
+## Support
+
+If you need assistance, you can try inquiring on [Google Cloud Community
+forum dedicated to Apigee](https://www.googlecloudcommunity.com/gc/Apigee/bd-p/cloud-apigee).
+There is no service-level guarantee for
+responses to inquiries regarding this callout.
 
 ## Bugs
 
