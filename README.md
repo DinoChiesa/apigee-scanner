@@ -1,8 +1,8 @@
-# Scan Apigee Edge Proxies
+# Scan Apigee Proxies
 
-This tool scans proxies for various conditions, for example, proxies with a name
+This tool scans Apigee proxies for various conditions, for example, proxies with a name
 that matches a regular expression. The tool then reports out the name of the
-matching proxies.
+matching proxies. It works with Apigee Edge, or Apigee X, or Apigee hybrid.
 
 The conditions can be somewhat elaborate. This can be helpful in enforcing compliance rules: eg,
 - proxies must have a name that conforms to a specific pattern
@@ -16,7 +16,7 @@ team collaboration systems, like Slack or Google chat, etc.
 
 ## Pre-requisites
 
-* Node v10.2 or above
+* Node v16.13.1 or above
 * npm
 
 ## Don't forget to Install node modules
@@ -211,35 +211,35 @@ two different scans.
    node ./scanProxies.js -o $ORG -n -v --deployed  --proxydesc '^((?!@example.com).)*$'
    ```
 
-4. Find deployed proxies that listen on the default vhost
+4. Find deployed proxies that listen on the default vhost:
    ```
    node ./scanProxies.js -o $ORG -n -v --deployed  --vhost default
    ```
 
-5. Find deployed proxies that have TLS configured incorrectly on any target
+5. Find deployed proxies that have TLS configured incorrectly on any target:
    ```
    node ./scanProxies.js -o $ORG -n -v --deployed  --targetssl
    ```
 
-6. Find deployed proxies that use a script (trireme nodejs) target
+6. Find deployed proxies that use a script (trireme nodejs) target:
    ```
    node ./scanProxies.js -o $ORG -n -v --deployed  --targettype script
    ```
 
-7. Scann for proxies that contain a policy with a name matching a specific pattern
+7. Scan for proxies that contain a policy with a name matching a specific pattern:
 
    ```sh
-   node ./scanProxies.js -v --apigeex --token $TOKEN -o $ORG  --policyname AM-\*
+   node ./scanProxies.js -v --apigeex --token $TOKEN -o $ORG  --policyname '^AM-.*'
    ```
 
 
 
 ## Adding Scanners
 
-It's straightforward to add more scanners.
+It's pretty straightforward to add more scanners.
 Just add a new .js file to the [scanners](./lib/scanners) directory.
 Follow the example in the existing scanners. Use a unique SCAN_NAME, which
-represents the command-line option for that scanner.  The scan tool will invoke
+represents the command-line option for that scanner. The scan tool will invoke
 the scanner if the command-line option for that scanner is present.
 
 
