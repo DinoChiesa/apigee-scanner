@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-February-11 18:00:11>
+// last saved: <2022-June-16 13:47:33>
 
 const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
@@ -37,14 +37,15 @@ const apigeejs = require('apigee-edge-js'),
       AdmZip   = require('adm-zip'),
       lib      = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version  = '20220211-1800';
+      version  = '20220616-1334';
 
 let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
       ['d' , 'deployed', 'Optional. restrict the scan to revisions of proxies that are deployed.'],
       ['L' , 'list', 'Optional. list the available scanners.'],
       ['e' , 'environment=ARG', 'Optional. Use with the --deployed flag.'],
-      ['' , 'latestrevision', 'Optional. scan only the latest revision of each proxy.']
+      ['' , 'latestrevision', 'Optional. scan only the latest revision of each proxy.'],
+      ['' , 'namepattern=ARG', 'Optional. scan only proxies with a name matching the regex.']
     ]);
 
 // ========================================================================================
@@ -154,11 +155,21 @@ apigee.connect(options)
         return transformed;
       }) :
       org.proxies.get()
-        .then( result => result.proxies? result.proxies : result.map( x => { return {name: x}; } ) ) ;
+      .then( result => result.proxies? result.proxies : result.map( x => ({name: x}) ) ) ;
+
+    if (opt.options.namepattern) {
+      let re1 = new RegExp(opt.options.namepattern);
+      p = p.then( proxySet => proxySet.filter(x => x.name.match(re1)));
+    }
+
+    //p = p.then( proxySet => (console.log(JSON.stringify(proxySet)), proxySet));
+
 
     p = p.then( proxySet => {
       // If looking at all proxies, proxySet is an array of {name: proxyname}.
       // OR, if looking at deployed proxies, proxySet is an array of {name:proxyname, revision}
+
+      //console.log(JSON.stringify(proxySet));
 
       return tmp.dir({unsafeCleanup:true, prefix: 'scanProxies'}).then(tmpdir => {
 

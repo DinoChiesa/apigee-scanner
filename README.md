@@ -45,33 +45,35 @@ Usage:
   node scanProxies.js [OPTION]
 
 Options:
-  -M, --mgmtserver=ARG  the base path, including optional port, of the Apigee mgmt server. Defaults to https://api.enterprise.apigee.com .
-  -u, --username=ARG    org user with permissions to read Apigee configuration.
-  -p, --password=ARG    password for the org user.
-  -n, --netrc           retrieve the username + password from the .netrc file. In lieu of -u/-p
-  -o, --org=ARG         the Apigee organization.
-  -Z, --ssoZone=ARG     specify the SSO zone to use when authenticating.
-      --ssoUrl=ARG      specify the SSO url to use when authenticating.
-  -C, --passcode=ARG    specify the passcode to use when authenticating.
-  -J, --keyfile=ARG     the keyfile for a service account, for use with apigee.googleapis.com.
-      --token=ARG       use this explicitly-provided oauth token.
-      --apigeex         use apigee.googleapis.com for the mgmtserver.
-  -T, --notoken         do not try to obtain an oauth token.
-  -N, --forcenew        force obtain a new oauth token.
+  -M, --mgmtserver=ARG   the base path, including optional port, of the Apigee mgmt server. Defaults to https://api.enterprise.apigee.com .
+  -u, --username=ARG     org user with permissions to read Apigee configuration.
+  -p, --password=ARG     password for the org user.
+  -n, --netrc            retrieve the username + password from the .netrc file. In lieu of -u/-p
+  -o, --org=ARG          the Apigee organization.
+  -Z, --ssoZone=ARG      specify the SSO zone to use when authenticating.
+      --ssoUrl=ARG       specify the SSO url to use when authenticating.
+  -C, --passcode=ARG     specify the passcode to use when authenticating.
+  -J, --keyfile=ARG      the keyfile for a service account, for use with apigee.googleapis.com.
+      --token=ARG        use this explicitly-provided oauth token.
+      --apigeex          use apigee.googleapis.com for the mgmtserver.
+  -T, --notoken          do not try to obtain an oauth token.
+  -N, --forcenew         force obtain a new oauth token.
   -v, --verbose
   -h, --help
-  -q, --quiet           Optional. be quiet.
-  -d, --deployed        Optional. restrict the scan to revisions of proxies that are deployed.
-  -L, --list            Optional. list the available scanners.
-  -e, --environment=ARG Optional. Use with the --deployed flag.
-      --latestrevision  Optional. scan only the latest revision of each proxy.
-      --policyname=ARG  flags each revision with a policy with a name that matches a pattern
-      --policytype=ARG  flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
-      --proxydesc=ARG   proxy description matching a particular regex
-      --proxyname=ARG   proxy name matching a regex
-      --targettype=ARG  proxy with a specified target type (hosted, http, local, script), or none
-      --vhost=ARG       proxy revision with a reference to a particular vhost
-      --targetssl       proxy with an http target with TLS disabled or no Truststore
+  -q, --quiet            Optional. be quiet.
+  -d, --deployed         Optional. restrict the scan to revisions of proxies that are deployed.
+  -L, --list             Optional. list the available scanners.
+  -e, --environment=ARG  Optional. Use with the --deployed flag.
+      --latestrevision   Optional. scan only the latest revision of each proxy.
+      --namepattern=ARG  Optional. scan only proxies with a name matching the regex.
+      --policyname=ARG   flags each revision with a policy with a name that matches a pattern
+      --policyunattached flags each revision with a policy with a name that matches a pattern
+      --policytype=ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
+      --proxydesc=ARG    proxy description matching a particular regex
+      --proxyname=ARG    proxy name matching a regex
+      --targettype=ARG   proxy with a specified target type (hosted, http, local, script), or none
+      --vhost=ARG        proxy revision with a reference to a particular vhost
+      --targetssl        proxy with an http target with TLS disabled or no Truststore
 
 ```
 
@@ -151,6 +153,7 @@ The tool uses a temporary directory to hold the expanded bundles.
 Scanners:
   --policyname ARG   flags each revision with a policy with a name that matches a pattern
   --policytype ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
+  --policyunattached flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
   --proxydesc ARG    proxy description matching a particular regex
   --proxyname ARG    proxy name matching a regex
   --targettype ARG   proxy with a specified target type (hosted, http, local, script, none)
@@ -198,10 +201,10 @@ node ./scanProxies.js -o $ORG -n -v --deployed --proxydesc '^((?!@example.com).)
 
 The result is the set of proxies which is the _union_ of all that have matched
 for each option. In other words, the matches satisfy either or both of the scan
-tests.
+tests. (Boolean OR)
 
-It is not possible at this time to return a set of proxies that matches the intersection of
-two different scans.
+At this time, it is not possible to return a set of proxies that matches the intersection of
+two different scans. (Boolean AND)
 
 ## Specific Usage Examples
 
@@ -241,6 +244,12 @@ two different scans.
 
    ```sh
    node ./scanProxies.js -v --apigeex --token $TOKEN -o $ORG  --policyname '^AM-.*'
+   ```
+
+7. Scan for proxies that are not attached to any Flow or FaultRule:
+
+   ```sh
+   node ./scanProxies.js -v --apigeex --token $TOKEN -o $ORG  --policyunattached
    ```
 
 
