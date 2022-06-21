@@ -13,7 +13,8 @@
     "@xmldom/xmldom": "^0.8.0",
     "adm-zip": "^0.5.9",
     "apigee-edge-js": "^0.4.33",
-    "node-getopt": "0.3.2",
+    "node-getopt": "git://github.com/tuxpoldo/node-getopt.git#05e498731c14b648fa332ca78d3a301c5e4be440",
+
     "sprintf-js": "^1.1.2",
     "tmp-promise": "^3.0.3",
     "xpath": "^0.0.32"
