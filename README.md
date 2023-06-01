@@ -228,7 +228,7 @@ ARE NOT one of a subset. For example, check for any proxy that uses any policy
 _OTHER THAN_ VerifyAPIKey, Quota, or OAuthV2:
 
 ```
-node ./scanProxies.js --token $TOKEN --apigeex -o $ORG --latestrevision --policytype "/(?!(Quota|VerifyAPIKey|OAuthV2)).+/"
+node ./scanProxies.js --token $TOKEN --apigeex -o $ORG --latestrevision --policytype "/^(?!(Quota|VerifyAPIKey|OAuthV2)).+$/"
 ```
 
 
