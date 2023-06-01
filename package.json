@@ -1,6 +1,6 @@
 {
   "name": "apigee-edge-scanner",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Scan the proxies (and maybe in the future, other assets) in an Apigee organization for various conditions",
   "main": "scanProxies.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "author": "dchiesa@google.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "@xmldom/xmldom": "^0.8.0",
+    "@xmldom/xmldom": "^0.8.4",
     "adm-zip": "^0.5.9",
     "apigee-edge-js": "^0.4.33",
     "node-getopt": "git://github.com/tuxpoldo/node-getopt.git#05e498731c14b648fa332ca78d3a301c5e4be440",
@@ -18,6 +18,10 @@
     "sprintf-js": "^1.1.2",
     "tmp-promise": "^3.0.3",
     "xpath": "^0.0.32"
+  },
+  "overrides": {
+    "xml2js": ">0.5.0",
+    "qs": "6.5.3"
   },
   "engines": {
     "node": ">= 16.13.1"
