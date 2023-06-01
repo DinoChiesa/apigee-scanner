@@ -16,7 +16,7 @@ team collaboration systems, like Slack or Google chat, etc.
 
 ## License and Copyright
 
-This material is [Copyright (c) 2018-2022 Google LLC](./NOTICE).
+This material is [Copyright (c) 2018-2023 Google LLC](./NOTICE).
 and is licensed under the [Apache 2.0 License](LICENSE).
 
 ## Disclaimer
@@ -153,7 +153,7 @@ The tool uses a temporary directory to hold the expanded bundles.
 Scanners:
   --policyname ARG   flags each revision with a policy with a name that matches a pattern
   --policytype ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
-  --policyunattached flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
+  --policyunattached flags each revision with a policy that is unattached
   --proxydesc ARG    proxy description matching a particular regex
   --proxyname ARG    proxy name matching a regex
   --targettype ARG   proxy with a specified target type (hosted, http, local, script, none)
@@ -198,15 +198,41 @@ You can use more than one of the scanners in a single run, like this:
 node ./scanProxies.js -o $ORG -n -v --deployed --proxydesc '^((?!@example.com).)*$'  --policytype XMLToJSON
 ```
 
-
 The result is the set of proxies which is the _union_ of all that have matched
 for each option. In other words, the matches satisfy either or both of the scan
 tests. (Boolean OR)
 
-At this time, it is not possible to return a set of proxies that matches the intersection of
+At this time, it is not possible to return a set of proxies that matches the _intersection_ of
 two different scans. (Boolean AND)
 
-## Specific Usage Examples
+## The PolicyType scanner
+
+You can pass a name or a regular expression to the policytype scanner.
+
+For example this will scan an Apigee-X organization to find all proxies with a VerifyAPIKey policy:
+
+```
+TOKEN=$(gcloud auth print-access-token)
+node ./scanProxies.js --token $TOKEN --apigeex -o $ORG --latestrevision --policytype VerifyAPIKey
+```
+
+You can denote a regex using leading and trailing slashes. This will scan the
+same org, checking for _either_ VerifyAPIKey or Quota:
+
+```
+node ./scanProxies.js --token $TOKEN --apigeex -o $ORG --latestrevision --policytype "/(VerifyAPIKey|Quota)/"
+```
+
+And you can use "negative lookahead" (a regex feature) to scan for policies that
+ARE NOT one of a subset. For example, check for any proxy that uses any policy
+_OTHER THAN_ VerifyAPIKey, Quota, or OAuthV2:
+
+```
+node ./scanProxies.js --token $TOKEN --apigeex -o $ORG --latestrevision --policytype "/(?!(Quota|VerifyAPIKey|OAuthV2)).+/"
+```
+
+
+## More Specific Usage Examples
 
 1. Find deployed proxies with names that don't look like foo-1 or bar-2:
 

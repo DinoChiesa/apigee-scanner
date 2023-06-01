@@ -1,6 +1,6 @@
 {
   "name": "apigee-edge-scanner",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Scan the proxies (and maybe in the future, other assets) in an Apigee organization for various conditions",
   "main": "scanProxies.js",
   "scripts": {
