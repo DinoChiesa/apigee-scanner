@@ -67,7 +67,7 @@ Options:
       --latestrevision   Optional. scan only the latest revision of each proxy.
       --namepattern=ARG  Optional. scan only proxies with a name matching the regex.
       --policyname=ARG   flags each revision with a policy with a name that matches a pattern
-      --policyunattached flags each revision with a policy with a name that matches a pattern
+      --policyunattached flags each revision with a policy that is unattached
       --policytype=ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
       --proxydesc=ARG    proxy description matching a particular regex
       --proxyname=ARG    proxy name matching a regex
