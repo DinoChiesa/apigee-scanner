@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2023-June-26 17:32:25>
+// last saved: <2023-June-27 10:23:59>
 
 const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
@@ -37,7 +37,7 @@ const apigeejs = require('apigee-edge-js'),
       AdmZip   = require('adm-zip'),
       lib      = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version  = '20230626-1729';
+      version  = '20230627-1021';
 
 let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
@@ -54,7 +54,7 @@ function listScanners(scanners) {
   scanners.forEach( scanner => {
     let usage = '--' + scanner.option;
     if ( ! scanner.noarg) { usage += ' ARG'; }
-    console.log(sprintf('  %-18s %s', usage, scanner.description));
+    console.log(sprintf('  %-20s %s', usage, scanner.description));
   });
 }
 
@@ -181,10 +181,11 @@ apigee.connect(options)
           // in which case we want to scan an array of revisions.
 
           // There are two kinds of scans: one that applies to the proxy
-          // definition itself, and the other that applies to the proxy revision.
-          // The proxy is pretty limited in what it stores: proxy name.  The
-          // revision is what contains most of the interesting information that is
-          // worthy of scanning.
+          // definition itself, and the other that applies to the proxy
+          // revision. The proxy is pretty limited in what it stores: proxy
+          // name, and description. The revision contains more information that
+          // is worthy of scanning: policy files, resources, etc.
+
           //console.log(`oneProxy(): ${util.format(tuple)}`);
 
           let proxyDefn;
@@ -210,16 +211,15 @@ apigee.connect(options)
           }
 
           async function examineRevisions(interimResults) {
-            let revisionArray = getRevisionArray();
-            // console.log(`examineRevisions(): a1: ${util.format(revisionArray)}`);
-            revisionArray = revisionArray
+            let revisionArray = getRevisionArray()
               .map(a => Number(a))
-              .sort((a, b) => { if (a>b) return 1; if (b>a) return -1; return 0;});
+              .sort((a, b) => (a - b));
+
             if (opt.options.latestrevision) {
               revisionArray = revisionArray.slice(-1);
             }
-            //console.log(`examineRevisions(): a2: ${util.format(revisionArray)}`);
 
+            // for each proxy revision, export it and unzip into the tmp dir
             let nameRevTuples =
               await revisionArray
               .reduce( (p, x) => p.then( async a => {
@@ -235,17 +235,22 @@ apigee.connect(options)
                   });
               }), Promise.resolve([]));
 
-            // a 2-d reduce: applying N scanners to M revisions.
+            // a 2-level reduce: applying N scanners to M revisions.
             return revisionScanners
               .map(lib.makeReducer) // turn each scanner into a reducer
-              .map( x => nameRevTuples.reduce(x, Promise.resolve([]) ) )
+              .map( x => nameRevTuples.reduce(x, Promise.resolve([]) ) ) // apply each reducer to the set of proxies
               .reduce( (p, item) => p.then( async a => a.concat(await item) ) , Promise.resolve([]))
               .then( results => interimResults.concat(results));
           }
 
-          return org.proxies.get({name:tuple.name})
-            .then(examineOneProxy)
-            .then(examineRevisions);
+          let r = (proxyScanners.length > 0) ? org.proxies.get({name:tuple.name}).then(examineOneProxy) : [];
+
+          if (revisionScanners.length > 0) {
+            r = r .then(examineRevisions);
+          }
+
+          return r;
+
         }
 
         // apply the scans on each of the proxies in the set

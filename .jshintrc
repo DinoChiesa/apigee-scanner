@@ -1,0 +1,10 @@
+{
+  "esversion": 9,
+  "node" : true,
+  "globals" : {
+    "require" : false,
+    "process" : false,
+    "module" : false,
+    "__dirname" : false
+  }
+}
