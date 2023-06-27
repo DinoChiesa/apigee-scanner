@@ -66,15 +66,15 @@ Options:
   -e, --environment=ARG  Optional. Use with the --deployed flag.
       --latestrevision   Optional. scan only the latest revision of each proxy.
       --namepattern=ARG  Optional. scan only proxies with a name matching the regex.
-      --policyname=ARG   flags each revision with a policy with a name that matches a pattern
-      --policyunattached flags each revision with a policy that is unattached
-      --policytype=ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
-      --proxydesc=ARG    proxy description matching a particular regex
-      --proxyname=ARG    proxy name matching a regex
-      --targettype=ARG   proxy with a specified target type (hosted, http, local, script), or none
-      --vhost=ARG        proxy revision with a reference to a particular vhost
-      --targetssl        proxy with an http target with TLS disabled or no Truststore
-
+      --policyname=ARG    flags each revision with a policy with a name that matches a pattern
+      --policytype=ARG    flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc), or a type that matches a regex
+      --policyunattached  flags each revision with a policy that is unattached
+      --proxydesc=ARG     proxy description matching a particular regex
+      --proxyname=ARG     proxy name matching a regex
+      --sharedflowuse=ARG flags each revision that has a FlowCallout to a named SharedFlow, or a SharedFlow that matches a regex
+      --targetssl         proxy with an http target with TLS disabled or no Truststore
+      --targettype=ARG    proxy with a specified target type (hosted, http, local, script), or none
+      --vhost=ARG         proxy revision with a reference to a particular vhost
 ```
 
 ## Example Usage with Apigee Edge
@@ -92,7 +92,7 @@ machine api.enterprise.apigee.com
   password VerySecret!
 ```
 
-This works with Apigee Edge! This kind of authentication won't work with Apigee X or hybrid.
+This works with Apigee Edge. This .netrc-based authentication won't work with Apigee X or hybrid.
 
 Other options for authenticating:
 * specify the -u and -p options on the command line
@@ -152,13 +152,14 @@ The tool uses a temporary directory to hold the expanded bundles.
 ```
 Scanners:
   --policyname ARG   flags each revision with a policy with a name that matches a pattern
-  --policytype ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc)
+  --policytype ARG   flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc), or a type that matches a regex
   --policyunattached flags each revision with a policy that is unattached
   --proxydesc ARG    proxy description matching a particular regex
   --proxyname ARG    proxy name matching a regex
-  --targettype ARG   proxy with a specified target type (hosted, http, local, script, none)
-  --vhost ARG        proxy revision with a reference to a particular vhost
+  --sharedflowuse ARG flags each revision that has a FlowCallout to a named SharedFlow, or a SharedFlow that matches a regex
   --targetssl        proxy with an http target with TLS disabled or no Truststore
+  --targettype ARG   proxy with a specified target type (hosted, http, local, script), or none
+  --vhost ARG        proxy revision with a reference to a particular vhost
 ```
 
 Find the scanners in [lib/scanners](./lib/scanners).
@@ -278,6 +279,13 @@ node ./scanProxies.js --token $TOKEN --apigeex -o $ORG --latestrevision --policy
    node ./scanProxies.js -v --apigeex --token $TOKEN -o $ORG  --policyunattached
    ```
 
+
+7. Scan for proxies (checking only the latest revision of each) that explicitly call to a specific SharedFlow:
+
+   ```sh
+   node ./scanProxies.js --token $TOKEN --apigeex --org $ORG --latestrevision --sharedflowuse common-config
+   ```
+   Note: this does not catch indirect calls to the sharedflow, eg, from another sharedflow!
 
 
 ## Adding Scanners

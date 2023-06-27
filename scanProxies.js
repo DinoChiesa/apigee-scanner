@@ -9,7 +9,7 @@
 // not listen on the the 'default' (insecure) vhost, or proxies must have a name
 // that conforms to a specific pattern.
 //
-// Copyright © 2017-2022 Google LLC.
+// Copyright © 2017-2023 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-June-16 13:47:33>
+// last saved: <2023-June-26 17:32:25>
 
 const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
@@ -37,7 +37,7 @@ const apigeejs = require('apigee-edge-js'),
       AdmZip   = require('adm-zip'),
       lib      = require('./lib/index.js'),
       scanners = lib.loadScanners(),
-      version  = '20220616-1334';
+      version  = '20230626-1729';
 
 let optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
