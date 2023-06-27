@@ -45,37 +45,38 @@ Usage:
   node scanProxies.js [OPTION]
 
 Options:
-  -M, --mgmtserver=ARG    the base path, including optional port, of the Apigee mgmt server. Defaults to https://api.enterprise.apigee.com .
-  -u, --username=ARG      org user with permissions to read Apigee configuration.
-  -p, --password=ARG      password for the org user.
-  -n, --netrc             retrieve the username + password from the .netrc file. In lieu of -u/-p
-  -o, --org=ARG           the Apigee organization.
-  -Z, --ssoZone=ARG       specify the SSO zone to use when authenticating.
-      --ssoUrl=ARG        specify the SSO url to use when authenticating.
-  -C, --passcode=ARG      specify the passcode to use when authenticating.
-  -J, --keyfile=ARG       the keyfile for a service account, for use with apigee.googleapis.com.
-      --token=ARG         use this explicitly-provided oauth token.
-      --apigeex           use apigee.googleapis.com for the mgmtserver.
-  -T, --notoken           do not try to obtain an oauth token.
-  -N, --forcenew          force obtain a new oauth token.
+  -M, --mgmtserver=ARG         the base path, including optional port, of the Apigee mgmt server. Defaults to https://api.enterprise.apigee.com .
+  -u, --username=ARG           org user with permissions to read Apigee configuration.
+  -p, --password=ARG           password for the org user.
+  -n, --netrc                  retrieve the username + password from the .netrc file. In lieu of -u/-p
+  -o, --org=ARG                the Apigee organization.
+  -Z, --ssoZone=ARG            specify the SSO zone to use when authenticating.
+      --ssoUrl=ARG             specify the SSO url to use when authenticating.
+  -C, --passcode=ARG           specify the passcode to use when authenticating.
+  -J, --keyfile=ARG            the keyfile for a service account, for use with apigee.googleapis.com.
+      --token=ARG              use this explicitly-provided oauth token.
+      --apigeex                use apigee.googleapis.com for the mgmtserver.
+  -T, --notoken                do not try to obtain an oauth token.
+  -N, --forcenew               force obtain a new oauth token.
   -v, --verbose
   -h, --help
-  -q, --quiet             Optional. be quiet.
-  -d, --deployed          Optional. restrict the scan to revisions of proxies that are deployed.
-  -L, --list              Optional. list the available scanners.
-  -e, --environment=ARG   Optional. Use with the --deployed flag.
-      --latestrevision    Optional. scan only the latest revision of each proxy.
-      --namepattern=ARG   Optional. scan only proxies with a name matching the regex.
-      --policyname=ARG    flags each revision with a policy with a name that matches a pattern
-      --policytype=ARG    flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc), or a type that matches a regex
-      --policyunattached  flags each revision with a policy that is unattached
-      --proxydesc=ARG     proxy description matching a particular regex
-      --proxyname=ARG     proxy name matching a regex
-      --revisioncount=ARG flags each proxy with a number of revisions greater than x
-      --sharedflowuse=ARG flags each revision that has a FlowCallout to a named SharedFlow, or a SharedFlow that matches a regex
-      --targetssl         proxy with an http target with TLS disabled or no Truststore
-      --targettype=ARG    proxy with a specified target type (hosted, http, local, script), or none
-      --vhost=ARG         proxy revision with a reference to a particular vhost
+  -q, --quiet                  Optional. be quiet.
+  -d, --deployed               Optional. restrict the scan to revisions of proxies that are deployed.
+  -L, --list                   Optional. list the available scanners.
+  -e, --environment=ARG        Optional. Use with the --deployed flag.
+      --latestrevision         Optional. scan only the latest revision of each proxy.
+      --namepattern=ARG        Optional. scan only proxies with a name matching the regex.
+      --policyname=ARG         flags each revision with a policy with a name that matches a pattern
+      --policytype=ARG         flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc), or a type that matches a regex
+      --policyunattached       flags each revision with a policy that is unattached
+      --proxydesc=ARG          proxy description matching a particular regex
+      --proxyname=ARG          proxy name matching a regex
+      --revisioncount=ARG      flags each proxy with a number of revisions greater than x
+      --sharedflowuse=ARG      flags each revision that has a FlowCallout to a named SharedFlow, or a SharedFlow that matches a regex
+      --targetloadbalancer=ARG proxy with an target LoadBalance
+      --targetsslhygiene       proxy with an http target with TLS disabled or no Truststore
+      --targettype=ARG         proxy with a specified target type (hosted, http, local, script), or none
+      --vhost=ARG              proxy revision with a reference to a particular vhost
 ```
 
 ## Example Usage with Apigee X or hybrid
@@ -153,16 +154,17 @@ The tool uses a temporary directory to hold the expanded bundles.
 
 ```
 Scanners:
-  --policyname ARG     flags each revision with a policy with a name that matches a pattern
-  --policytype ARG     flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc), or a type that matches a regex
-  --policyunattached   flags each revision with a policy that is unattached
-  --proxydesc ARG      proxy description matching a particular regex
-  --proxyname ARG      proxy name matching a regex
-  --revisioncount ARG  flags each proxy with a number of revisions greater than x
-  --sharedflowuse ARG  flags each revision that has a FlowCallout to a named SharedFlow, or a SharedFlow that matches a regex
-  --targetssl          proxy with an http target with TLS disabled or no Truststore
-  --targettype ARG     proxy with a specified target type (hosted, http, local, script), or none
-  --vhost ARG          proxy revision with a reference to a particular vhost
+  --policyname ARG         flags each revision with a policy with a name that matches a pattern
+  --policytype ARG         flags each revision with a policy of a particular type (RaiseFault, GenerateJWT, etc), or a type that matches a regex
+  --policyunattached       flags each revision with a policy that is unattached
+  --proxydesc ARG          proxy description matching a particular regex
+  --proxyname ARG          proxy name matching a regex
+  --revisioncount ARG      flags each proxy with a number of revisions greater than x
+  --sharedflowuse ARG      flags each revision that has a FlowCallout to a named SharedFlow, or a SharedFlow that matches a regex
+  --targetloadbalancer ARG proxy with an target LoadBalance
+  --targetsslhygiene       proxy with an http target with TLS disabled or no Truststore
+  --targettype ARG         proxy with a specified target type (hosted, http, local, script), or none
+  --vhost ARG              proxy revision with a reference to a particular vhost
 ```
 
 Find the scanners in [lib/scanners](./lib/scanners).
