@@ -23,11 +23,11 @@
 // not listen on the the 'default' (insecure) vhost, or proxies must have a name
 // that conforms to a specific pattern.
 //
-// last saved: <2023-June-27 11:50:06>
+// last saved: <2023-June-30 09:23:52>
 
 const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
-      util     = require('util'),
+      //util     = require('util'),
       path     = require('path'),
       fs       = require('fs'),
       tmp      = require('tmp-promise'),
@@ -39,7 +39,7 @@ const apigeejs = require('apigee-edge-js'),
       scanners = lib.loadScanners(),
       version  = '20230627-1141';
 
-let optionsList = common.commonOptions.concat([
+const optionsList = common.commonOptions.concat([
       ['q' , 'quiet', 'Optional. be quiet.'],
       ['d' , 'deployed', 'Optional. restrict the scan to revisions of proxies that are deployed.'],
       ['L' , 'list', 'Optional. list the available scanners.'],
@@ -76,10 +76,9 @@ const getProxyScanners =
 
 // add the dynamically-loaded scanners into the optionsList
 scanners.forEach( scanner => {
-  var usage = scanner.option;
+  let usage = scanner.option;
   if ( ! scanner.noarg) { usage += '=ARG'; }
-  var newOption = ['', usage, scanner.description];
-  optionsList.push(newOption);
+  optionsList.push(['', usage, scanner.description]);
 });
 
 const getopt = new Getopt(optionsList).bindHelp();
@@ -101,7 +100,7 @@ if (opt.options.list) {
   process.exit(1);
 }
 
-let activePlugins = scanners.filter( scanner => opt.options[scanner.option]);
+const activePlugins = scanners.filter( scanner => opt.options[scanner.option]);
 if (activePlugins.length == 0) {
   console.log('You have not specified any scanners.');
   console.log('Try one or more of the following:');
@@ -116,12 +115,11 @@ if (opt.options.apigeex && opt.options.deployed && !opt.options.environment) {
 }
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
-var options = common.optToOptions(opt);
 
-apigee.connect(options)
+apigee.connect(common.optToOptions(opt))
   .then ( org => {
-    let revisionScanners = getRevisionScanners(org, activePlugins);
-    let proxyScanners = getProxyScanners(org, activePlugins);
+    const revisionScanners = getRevisionScanners(org, activePlugins);
+    const proxyScanners = getProxyScanners(org, activePlugins);
 
     let p = (opt.options.deployed) ?
       org.proxies.getDeployments({environment:opt.options.environment})
@@ -158,7 +156,7 @@ apigee.connect(options)
       .then( result => result.proxies? result.proxies : result.map( x => ({name: x}) ) ) ;
 
     if (opt.options.namepattern) {
-      let re1 = new RegExp(opt.options.namepattern);
+      const re1 = new RegExp(opt.options.namepattern);
       p = p.then( proxySet => proxySet.filter(x => x.name.match(re1)));
     }
 
@@ -220,16 +218,16 @@ apigee.connect(options)
             }
 
             // for each proxy revision, export it and unzip into the tmp dir
-            let nameRevTuples =
+            const nameRevTuples =
               await revisionArray
-              .reduce( (p, x) => p.then( async a => {
+              .reduce( (p, x) => p.then( a => {
                 return org.proxies.export({name:tuple.name, revision:x})
                   .then(({filename, buffer}) => {
-                    let pathOfZip = path.join(tmpdir.path, filename);
-                    // console.log(`looking at rev ${x}`);
-                    let pathOfUnzippedBundle = path.join(tmpdir.path, `proxy-${tuple.name}-r${x}`);
+                    const pathOfZip = path.join(tmpdir.path, filename);
+                    //console.log(`looking at rev ${x}`);
+                    const pathOfUnzippedBundle = path.join(tmpdir.path, `proxy-${tuple.name}-r${x}`);
                     fs.writeFileSync(pathOfZip, buffer);
-                    var zip = new AdmZip(pathOfZip);
+                    const zip = new AdmZip(pathOfZip);
                     zip.extractAllTo(pathOfUnzippedBundle, false);
                     return a.concat({ name: tuple.name, revision: x, bundleDir:pathOfUnzippedBundle});
                   });
